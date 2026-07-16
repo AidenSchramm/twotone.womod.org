@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Two-Tone Pager Suite</title>
+<style>
+  :root { color-scheme: dark light; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #14161a;
+    color: #e8e8e8;
+    max-width: 1400px;
+    margin: 40px auto;
+    padding: 0 20px;
+  }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  h2 { font-size: 0.95rem; margin: 0 0 14px; color: #d5d8de; }
+  p.sub { color: #9a9fa8; margin-top: 0; font-size: 0.9rem; }
+  .panel {
+    background: #1e2126;
+    border: 1px solid #2c3038;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 18px;
+  }
+  details.panel summary {
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #d5d8de;
+    outline: none;
+  }
+  details.panel[open] summary { margin-bottom: 14px; }
+  .tone-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .tone-row:last-child { margin-bottom: 0; }
+  .ref-row {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .ref-row:last-child { margin-bottom: 0; }
+  .tone-label {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #7fc7ff;
+    text-align: center;
+  }
+  label.field {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.75rem;
+    color: #9a9fa8;
+    gap: 4px;
+  }
+  input[type="number"] {
+    background: #101215;
+    border: 1px solid #3a3f48;
+    color: #e8e8e8;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.95rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  input[type="number"]:focus { outline: none; border-color: #7fc7ff; }
+  select {
+    background: #101215;
+    border: 1px solid #3a3f48;
+    color: #e8e8e8;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .row label.field { flex: 1; }
+  button {
+    background: #2f81f7;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+  }
+  button:hover { background: #4a90f7; }
+  button:disabled { background: #3a3f48; cursor: not-allowed; }
+  button.stop { background: #c73e3e; }
+  button.stop:hover { background: #d95050; }
+  button.secondary {
+    background: #2c3038;
+    font-weight: 500;
+    font-size: 0.85rem;
+    padding: 8px 14px;
+    width: auto;
+  }
+  button.secondary:hover { background: #3a3f48; }
+  .btn-row { display: flex; gap: 10px; }
+  .btn-row.listen-row { margin-top: 8px; }
+  .volume-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .volume-row input[type="range"] {
+    flex: 1;
+    accent-color: #2f81f7;
+  }
+  .volume-value {
+    min-width: 52px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+    color: #9a9fa8;
+  }
+  .volume-warning {
+    font-size: 0.75rem;
+    color: #e0a030;
+    margin-top: 6px;
+    min-height: 1em;
+  }
+  .status {
+    font-size: 0.85rem;
+    color: #9a9fa8;
+    margin-top: 10px;
+    min-height: 1.2em;
+  }
+  .status.playing { color: #7fc7ff; }
+  .status.active { color: #7fc7ff; }
+  .status.error { color: #e0605a; }
+  .live-readout {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #9a9fa8;
+    margin-bottom: 8px;
+  }
+  .live-readout span.value {
+    color: #e8e8e8;
+    font-variant-numeric: tabular-nums;
+  }
+  .amp-bar {
+    height: 8px;
+    background: #101215;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 14px;
+    border: 1px solid #3a3f48;
+  }
+  .amp-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: #2f81f7;
+    transition: width 60ms linear;
+  }
+  canvas#lisScope {
+    width: 100%;
+    height: 80px;
+    background: #101215;
+    border: 1px solid #3a3f48;
+    border-radius: 6px;
+    display: block;
+  }
+  .log-list { list-style: none; padding: 0; margin: 0; }
+  .log-entry { border-bottom: 1px solid #2c3038; padding: 12px 0; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-type { font-weight: 600; color: #7fc7ff; font-size: 0.9rem; }
+  .log-detail { font-size: 0.85rem; color: #d5d8de; margin-top: 2px; }
+  .log-time { font-size: 0.7rem; color: #6b7078; margin-top: 2px; }
+  .empty-log { color: #6b7078; font-size: 0.85rem; font-style: italic; }
+
+  .suite {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .tool-column {
+    flex: 1;
+    min-width: 0;
+  }
+  .divider {
+    width: 1px;
+    align-self: stretch;
+    background: #2c3038;
+    margin-top: 8px;
+  }
+  @media (max-width: 900px) {
+    .suite { flex-direction: column; }
+    .divider { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="suite">
+
+<div class="tool-column">
+  <h1>Two-Tone Pager Tester</h1>
+  <p class="sub">Configure tones A–D, pick a sequence, and play it through your speakers.</p>
+
+  <div class="panel">
+    <div class="tone-row">
+      <div></div>
+      <label class="field">Frequency (Hz)</label>
+      <label class="field">Duration (ms)</label>
+    </div>
+    <div class="tone-row">
+      <div class="tone-label">A</div>
+      <label class="field"><input type="number" id="genFreqA" value="1000" min="1" step="1"></label>
+      <label class="field"><input type="number" id="genDurA" value="1000" min="1" step="1"></label>
+    </div>
+    <div class="tone-row">
+      <div class="tone-label">B</div>
+      <label class="field"><input type="number" id="genFreqB" value="1150" min="1" step="1"></label>
+      <label class="field"><input type="number" id="genDurB" value="3000" min="1" step="1"></label>
+    </div>
+    <div class="tone-row">
+      <div class="tone-label">C</div>
+      <label class="field"><input type="number" id="genFreqC" value="800" min="1" step="1"></label>
+      <label class="field"><input type="number" id="genDurC" value="1000" min="1" step="1"></label>
+    </div>
+    <div class="tone-row">
+      <div class="tone-label">D</div>
+      <label class="field"><input type="number" id="genFreqD" value="1400" min="1" step="1"></label>
+      <label class="field"><input type="number" id="genDurD" value="1000" min="1" step="1"></label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <label class="field">
+        Sequence
+        <select id="genSequence"></select>
+      </label>
+    </div>
+
+    <div class="row" style="flex-direction: column; align-items: stretch;">
+      <label class="field" style="margin-bottom: 6px;">Volume</label>
+      <div class="volume-row">
+        <input type="range" id="genVolume" min="0" max="200" value="100" step="1">
+        <div class="volume-value" id="genVolumeValue">100%</div>
+      </div>
+      <div class="volume-warning" id="genVolumeWarning"></div>
+    </div>
+
+    <div class="btn-row">
+      <button id="genPlayBtn">▶ Play Sequence</button>
+      <button id="genStopBtn" class="stop" disabled>■ Stop</button>
+    </div>
+    <div class="status" id="genStatus"></div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<div class="tool-column">
+  <h1>Two-Tone Pager Listener</h1>
+  <p class="sub">Listens to the microphone and identifies long-tone or two-tone sequential pages.</p>
+
+  <details class="panel">
+    <summary>Reference tones (optional — for labeling detected tones as A/B/C/D)</summary>
+    <div class="ref-row">
+      <div class="tone-label">A</div>
+      <label class="field">Frequency (Hz)<input type="number" id="lisRefA" value="1000" min="1" step="1"></label>
+    </div>
+    <div class="ref-row">
+      <div class="tone-label">B</div>
+      <label class="field">Frequency (Hz)<input type="number" id="lisRefB" value="1150" min="1" step="1"></label>
+    </div>
+    <div class="ref-row">
+      <div class="tone-label">C</div>
+      <label class="field">Frequency (Hz)<input type="number" id="lisRefC" value="800" min="1" step="1"></label>
+    </div>
+    <div class="ref-row">
+      <div class="tone-label">D</div>
+      <label class="field">Frequency (Hz)<input type="number" id="lisRefD" value="1400" min="1" step="1"></label>
+    </div>
+  </details>
+
+  <details class="panel">
+    <summary>Detection settings</summary>
+    <div class="settings-grid">
+      <label class="field">Frequency tolerance (%)<input type="number" id="lisTolerance" value="1.5" min="0.1" step="0.1"></label>
+      <label class="field">Sensitivity / noise floor<input type="number" id="lisNoiseFloor" value="2.0" min="0.1" step="0.1"></label>
+      <label class="field">Min tone duration to count (ms)<input type="number" id="lisMinDur" value="500" min="0" step="10"></label>
+      <label class="field">Silence gap to end sequence (ms)<input type="number" id="lisSilenceGap" value="500" min="100" step="50"></label>
+      <label class="field">Long-tone threshold (ms)<input type="number" id="lisLongThresh" value="4000" min="100" step="100"></label>
+    </div>
+  </details>
+
+  <div class="panel">
+    <h2>Live monitor</h2>
+    <div class="live-readout">
+      <span>Current frequency</span>
+      <span class="value" id="lisCurFreq">—</span>
+    </div>
+    <div class="live-readout">
+      <span>Input level (RMS)</span>
+      <span class="value" id="lisCurRms">—</span>
+    </div>
+    <div class="amp-bar"><div class="amp-bar-fill" id="lisAmpFill"></div></div>
+    <canvas id="lisScope" width="640" height="80"></canvas>
+    <div class="status" id="lisStatus">Not listening.</div>
+    <div class="log-time" id="lisDiag"></div>
+    <div class="btn-row listen-row">
+      <button id="lisStartBtn">🎙 Start Listening</button>
+      <button id="lisStopBtn" class="stop" disabled>■ Stop</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Detected sequences</h2>
+    <p class="sub" style="margin-top: -8px; margin-bottom: 14px;">
+      Tones within 1.5% of a standard Motorola Quick Call II frequency are tagged <code>[QC2 ...]</code>.
+    </p>
+    <ul class="log-list" id="lisLogList">
+      <li class="empty-log">No sequences detected yet.</li>
+    </ul>
+    <div style="margin-top: 12px;">
+      <button id="lisClearBtn" class="secondary">Clear log</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ---- Tone generator ----
+(function () {
+  const letters = ['A', 'B', 'C', 'D'];
+  const sequenceSelect = document.getElementById('genSequence');
+
+  // Every ordered pair of two distinct tones (AB, AC, AD, BA, ... DC)
+  letters.forEach(first => {
+    letters.forEach(second => {
+      if (first !== second) {
+        const opt = document.createElement('option');
+        opt.value = first + second;
+        opt.textContent = first + second;
+        sequenceSelect.appendChild(opt);
+      }
+    });
+  });
+
+  // Single tones (A, B, C, D)
+  letters.forEach(letter => {
+    const opt = document.createElement('option');
+    opt.value = letter;
+    opt.textContent = letter;
+    sequenceSelect.appendChild(opt);
+  });
+
+  const volumeSlider = document.getElementById('genVolume');
+  const volumeValue = document.getElementById('genVolumeValue');
+  const volumeWarning = document.getElementById('genVolumeWarning');
+  const playBtn = document.getElementById('genPlayBtn');
+  const stopBtn = document.getElementById('genStopBtn');
+  const status = document.getElementById('genStatus');
+
+  let audioCtx = null;
+  let masterGain = null;
+  let activeNodes = [];
+  let stopTimer = null;
+
+  function updateVolumeLabel() {
+    const v = volumeSlider.value;
+    volumeValue.textContent = v + '%';
+    volumeWarning.textContent = v > 100
+      ? 'Above 100% may clip or distort audio on some speakers.'
+      : '';
+    // Master gain sits downstream of every tone's envelope, so nudging it
+    // here applies live even mid-playback instead of only at the next Play.
+    if (masterGain) {
+      masterGain.gain.setValueAtTime(v / 100, audioCtx.currentTime);
+    }
+  }
+  volumeSlider.addEventListener('input', updateVolumeLabel);
+  updateVolumeLabel();
+
+  function getToneConfig(letter) {
+    const freq = parseFloat(document.getElementById('genFreq' + letter).value);
+    const durMs = parseFloat(document.getElementById('genDur' + letter).value);
+    return { freq, durMs };
+  }
+
+  function stopPlayback() {
+    if (stopTimer) {
+      clearTimeout(stopTimer);
+      stopTimer = null;
+    }
+    activeNodes.forEach(({ osc, gain }) => {
+      try {
+        gain.gain.cancelScheduledValues(audioCtx.currentTime);
+        gain.gain.setValueAtTime(gain.gain.value, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.01);
+        osc.stop(audioCtx.currentTime + 0.02);
+      } catch (e) { /* already stopped */ }
+    });
+    activeNodes = [];
+    playBtn.disabled = false;
+    stopBtn.disabled = true;
+    status.textContent = 'Stopped.';
+    status.classList.remove('playing');
+  }
+
+  function playSequence() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.connect(audioCtx.destination);
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    masterGain.gain.setValueAtTime(volumeSlider.value / 100, audioCtx.currentTime);
+
+    const seq = sequenceSelect.value.split('');
+    const now = audioCtx.currentTime;
+    const rampTime = 0.008; // 8ms fade to avoid clicks
+    let cursor = now;
+    let totalDurationMs = 0;
+
+    activeNodes = [];
+
+    seq.forEach(letter => {
+      const { freq, durMs } = getToneConfig(letter);
+      const durSec = Math.max(durMs, 1) / 1000;
+
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, cursor);
+
+      // This envelope only shapes the attack/release (0→1→0) to avoid
+      // clicks; actual volume scaling happens in masterGain so the slider
+      // can adjust it live without re-scheduling every tone's automation.
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0, cursor);
+      gain.gain.linearRampToValueAtTime(1, cursor + rampTime);
+      gain.gain.setValueAtTime(1, cursor + durSec - rampTime);
+      gain.gain.linearRampToValueAtTime(0, cursor + durSec);
+
+      osc.connect(gain);
+      gain.connect(masterGain);
+
+      osc.start(cursor);
+      osc.stop(cursor + durSec + 0.01);
+
+      activeNodes.push({ osc, gain });
+
+      cursor += durSec;
+      totalDurationMs += durMs;
+    });
+
+    playBtn.disabled = true;
+    stopBtn.disabled = false;
+    status.textContent = 'Playing ' + seq.join('') + '...';
+    status.classList.add('playing');
+
+    stopTimer = setTimeout(() => {
+      playBtn.disabled = false;
+      stopBtn.disabled = true;
+      status.textContent = 'Done.';
+      status.classList.remove('playing');
+      activeNodes = [];
+    }, totalDurationMs + 50);
+  }
+
+  playBtn.addEventListener('click', playSequence);
+  stopBtn.addEventListener('click', stopPlayback);
+})();
+
+// ---- Tone listener ----
+(function () {
+  const startBtn = document.getElementById('lisStartBtn');
+  const stopBtn = document.getElementById('lisStopBtn');
+  const clearBtn = document.getElementById('lisClearBtn');
+  const statusEl = document.getElementById('lisStatus');
+  const curFreqEl = document.getElementById('lisCurFreq');
+  const curRmsEl = document.getElementById('lisCurRms');
+  const ampFillEl = document.getElementById('lisAmpFill');
+  const diagEl = document.getElementById('lisDiag');
+  const logList = document.getElementById('lisLogList');
+  const scopeCanvas = document.getElementById('lisScope');
+  const scopeCtx = scopeCanvas.getContext('2d');
+
+  let audioCtx = null;
+  let analyser = null;
+  let mediaStream = null;
+  let sourceNode = null;
+  let muteGain = null;
+  let analyzeTimer = null;
+  let drawRAF = null;
+  let running = false;
+
+  let currentSegment = null; // {freqSum, freqCount, freq, start, last}
+  let segments = [];
+  let lastSoundTime = 0;
+  let finalizePending = false;
+
+  function getSettings() {
+    return {
+      toleranceFrac: parseFloat(document.getElementById('lisTolerance').value) / 100,
+      noiseFloor: parseFloat(document.getElementById('lisNoiseFloor').value) / 100,
+      minDurMs: parseFloat(document.getElementById('lisMinDur').value),
+      silenceGapMs: parseFloat(document.getElementById('lisSilenceGap').value),
+      longThreshMs: parseFloat(document.getElementById('lisLongThresh').value)
+    };
+  }
+
+  function getReferenceTones() {
+    return {
+      A: parseFloat(document.getElementById('lisRefA').value),
+      B: parseFloat(document.getElementById('lisRefB').value),
+      C: parseFloat(document.getElementById('lisRefC').value),
+      D: parseFloat(document.getElementById('lisRefD').value)
+    };
+  }
+
+  function labelForFrequency(freq, toleranceFrac) {
+    const refs = getReferenceTones();
+    let best = null, bestDiff = Infinity;
+    for (const letter in refs) {
+      const refFreq = refs[letter];
+      if (!refFreq || refFreq <= 0) continue;
+      const diff = Math.abs(freq - refFreq) / refFreq;
+      if (diff < bestDiff) { bestDiff = diff; best = letter; }
+    }
+    if (best !== null && bestDiff <= toleranceFrac) return best;
+    return null;
+  }
+
+  // Motorola Quick Call II ("one plus one") standard tone plan — all 80
+  // frequencies across its 8 reed groups (Midian Electronics reference chart).
+  const QC2_TONES = [
+    349.0, 368.5, 389.0, 410.8, 433.7, 457.9, 483.5, 510.5, 539.0, 330.5,
+    600.9, 634.5, 669.9, 707.3, 746.8, 788.5, 832.5, 879.0, 928.1, 569.1,
+    288.5, 296.5, 304.7, 313.0, 953.7, 979.9, 1006.9, 1034.7, 1063.2, 1092.4,
+    339.6, 358.6, 378.6, 399.8, 422.1, 445.7, 470.5, 496.8, 524.6, 321.7,
+    584.8, 617.4, 651.9, 688.3, 726.8, 767.4, 810.2, 855.5, 903.2, 553.9,
+    1153.4, 1185.2, 1217.8, 1251.4, 1285.8, 1321.2, 1357.6, 1395.0, 1433.4, 1122.5,
+    1513.5, 1555.2, 1598.0, 1642.0, 1687.2, 1733.7, 1781.5, 1830.5, 1881.0, 1472.9,
+    1989.0, 2043.8, 2094.5, 2155.6, 2212.2, 2271.7, 2334.6, 2401.0, 2468.2, 1930.2
+  ];
+  const QC2_TOLERANCE_FRAC = 0.015; // 1.5%
+
+  function nearestQC2Match(freq) {
+    let best = null, bestDiff = Infinity;
+    for (const t of QC2_TONES) {
+      const diff = Math.abs(freq - t) / t;
+      if (diff < bestDiff) { bestDiff = diff; best = t; }
+    }
+    if (best !== null && bestDiff <= QC2_TOLERANCE_FRAC) {
+      return { freq: best, diffPct: bestDiff * 100 };
+    }
+    return null;
+  }
+
+  // Autocorrelation-based pitch detection on a time-domain buffer.
+  function autoCorrelate(buf, sampleRate) {
+    const SIZE = buf.length;
+    let rms = 0;
+    for (let i = 0; i < SIZE; i++) { rms += buf[i] * buf[i]; }
+    rms = Math.sqrt(rms / SIZE);
+
+    const settings = getSettings();
+    if (rms < settings.noiseFloor) return { freq: -1, rms };
+
+    let r1 = 0, r2 = SIZE - 1;
+    const thres = 0.2;
+    for (let i = 0; i < SIZE / 2; i++) { if (Math.abs(buf[i]) < thres) { r1 = i; break; } }
+    for (let i = 1; i < SIZE / 2; i++) { if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; } }
+    const trimmed = buf.slice(r1, r2);
+    const n = trimmed.length;
+    if (n < 8) return { freq: -1, rms };
+
+    const c = new Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n - i; j++) {
+        c[i] += trimmed[j] * trimmed[j + i];
+      }
+    }
+
+    let d = 0;
+    while (d < n - 1 && c[d] > c[d + 1]) d++;
+
+    let maxVal = -1, maxPos = -1;
+    for (let i = d; i < n; i++) {
+      if (c[i] > maxVal) { maxVal = c[i]; maxPos = i; }
+    }
+    if (maxPos <= 0) return { freq: -1, rms };
+
+    let T0 = maxPos;
+    const x1 = c[T0 - 1] !== undefined ? c[T0 - 1] : c[T0];
+    const x2 = c[T0];
+    const x3 = c[T0 + 1] !== undefined ? c[T0 + 1] : c[T0];
+    const a = (x1 + x3 - 2 * x2) / 2;
+    const b = (x3 - x1) / 2;
+    if (a !== 0) T0 = T0 - b / (2 * a);
+
+    const freq = sampleRate / T0;
+    if (freq < 250 || freq > 4000) return { freq: -1, rms };
+    return { freq, rms };
+  }
+
+  function closeSegment(endTime) {
+    if (!currentSegment) return;
+    const duration = endTime - currentSegment.start;
+    const settings = getSettings();
+    if (duration >= settings.minDurMs) {
+      segments.push({ freq: currentSegment.freq, duration, start: currentSegment.start });
+    }
+    currentSegment = null;
+  }
+
+  function formatFreq(f) { return Math.round(f) + ' Hz'; }
+  function formatDur(ms) { return (ms / 1000).toFixed(2) + 's'; }
+
+  function formatSegment(l, withDuration) {
+    let s = (l.letter ? l.letter + '=' : '') + formatFreq(l.freq) +
+      (withDuration ? ' (' + formatDur(l.duration) + ')' : ' for ' + formatDur(l.duration));
+    const qc2 = l.qc2;
+    if (qc2) {
+      s += ' [QC2 ' + qc2.freq.toFixed(1) + ' Hz, Δ' + qc2.diffPct.toFixed(2) + '%]';
+    }
+    return s;
+  }
+
+  function classifyAndLog() {
+    if (segments.length === 0) return;
+    const settings = getSettings();
+    const labeled = segments.map(s => ({
+      ...s,
+      letter: labelForFrequency(s.freq, settings.toleranceFrac),
+      qc2: nearestQC2Match(s.freq)
+    }));
+
+    let type, detail;
+    if (labeled.length === 1) {
+      if (labeled[0].duration >= settings.longThreshMs) {
+        type = 'Long Tone';
+      } else {
+        type = 'Single Tone (brief)';
+      }
+      detail = formatSegment(labeled[0], false);
+    } else if (labeled.length === 2) {
+      type = 'Two-Tone Sequential';
+      detail = labeled.map(l => formatSegment(l, true)).join(' → ');
+    } else {
+      type = 'Multi-Tone Sequence (' + labeled.length + ' tones)';
+      detail = labeled.map(l => formatSegment(l, true)).join(' → ');
+    }
+
+    addLogEntry(type, detail);
+    segments = [];
+  }
+
+  function addLogEntry(type, detail) {
+    const emptyMsg = logList.querySelector('.empty-log');
+    if (emptyMsg) emptyMsg.remove();
+
+    const li = document.createElement('li');
+    li.className = 'log-entry';
+    const time = new Date().toLocaleTimeString();
+    li.innerHTML =
+      '<div class="log-type">' + type + '</div>' +
+      '<div class="log-detail">' + detail + '</div>' +
+      '<div class="log-time">' + time + '</div>';
+    logList.insertBefore(li, logList.firstChild);
+  }
+
+  function analyze() {
+    if (!analyser) return;
+    const buf = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(buf);
+
+    const { freq, rms } = autoCorrelate(buf, audioCtx.sampleRate);
+    const now = performance.now();
+    const settings = getSettings();
+
+    curRmsEl.textContent = rms.toFixed(4);
+    ampFillEl.style.width = Math.min(100, (rms / 0.3) * 100) + '%';
+
+    const validTone = freq > 0;
+
+    if (validTone) {
+      lastSoundTime = now;
+      finalizePending = false;
+      curFreqEl.textContent = formatFreq(freq);
+
+      if (!currentSegment) {
+        currentSegment = { freqSum: freq, freqCount: 1, freq, start: now, last: now };
+        statusEl.textContent = 'Detecting tone at ' + formatFreq(freq) + '...';
+        statusEl.className = 'status active';
+      } else {
+        const pctDiff = Math.abs(freq - currentSegment.freq) / currentSegment.freq;
+        if (pctDiff <= settings.toleranceFrac) {
+          currentSegment.freqSum += freq;
+          currentSegment.freqCount++;
+          currentSegment.freq = currentSegment.freqSum / currentSegment.freqCount;
+          currentSegment.last = now;
+        } else {
+          closeSegment(currentSegment.last);
+          currentSegment = { freqSum: freq, freqCount: 1, freq, start: now, last: now };
+        }
+        statusEl.textContent = 'Detecting tone at ' + formatFreq(currentSegment.freq) +
+          ' (' + formatDur(now - currentSegment.start) + ')...';
+        statusEl.className = 'status active';
+      }
+    } else {
+      curFreqEl.textContent = '—';
+      if (currentSegment && (now - currentSegment.last) > Math.min(150, settings.silenceGapMs)) {
+        closeSegment(currentSegment.last);
+        statusEl.textContent = 'Listening (silence)...';
+        statusEl.className = 'status';
+      } else if (!currentSegment) {
+        statusEl.textContent = 'Listening...';
+        statusEl.className = 'status';
+      }
+
+      if (segments.length > 0 && !finalizePending && (now - lastSoundTime) > settings.silenceGapMs) {
+        finalizePending = true;
+        classifyAndLog();
+      }
+    }
+  }
+
+  function drawScope() {
+    if (!analyser) return;
+    const buf = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(buf);
+
+    const w = scopeCanvas.width, h = scopeCanvas.height;
+    scopeCtx.clearRect(0, 0, w, h);
+    scopeCtx.strokeStyle = '#7fc7ff';
+    scopeCtx.lineWidth = 1.5;
+    scopeCtx.beginPath();
+    const step = Math.max(1, Math.floor(buf.length / w));
+    for (let x = 0, i = 0; i < buf.length; i += step, x++) {
+      const y = h / 2 + buf[i] * (h / 2) * 0.9;
+      if (x === 0) scopeCtx.moveTo(x, y); else scopeCtx.lineTo(x, y);
+    }
+    scopeCtx.stroke();
+
+    drawRAF = requestAnimationFrame(drawScope);
+  }
+
+  async function startListening() {
+    // Create (and resume) the context synchronously within the click gesture,
+    // before any "await" — some browsers won't auto-run a context created
+    // after an async gap, leaving it permanently suspended (flat/frozen scope).
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    try {
+      await audioCtx.resume();
+    } catch (e) { /* ignore */ }
+
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
+    } catch (err) {
+      statusEl.textContent = 'Microphone access denied or unavailable: ' + err.message;
+      statusEl.className = 'status error';
+      audioCtx.close();
+      audioCtx = null;
+      return;
+    }
+
+    if (audioCtx.state === 'suspended') {
+      try { await audioCtx.resume(); } catch (e) { /* ignore */ }
+    }
+
+    sourceNode = audioCtx.createMediaStreamSource(mediaStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    sourceNode.connect(analyser);
+
+    // Some browsers only pull/process nodes that have a live path to the
+    // destination — an AnalyserNode with nothing downstream can silently
+    // never update. Route through a zero-gain node so it's always processed
+    // without actually making sound.
+    muteGain = audioCtx.createGain();
+    muteGain.gain.value = 0;
+    analyser.connect(muteGain);
+    muteGain.connect(audioCtx.destination);
+
+    segments = [];
+    currentSegment = null;
+    lastSoundTime = performance.now();
+    finalizePending = false;
+
+    running = true;
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    statusEl.textContent = 'Listening...';
+    statusEl.className = 'status active';
+
+    const track = mediaStream.getAudioTracks()[0];
+    let settingsStr = '';
+    if (track && track.getSettings) {
+      const s = track.getSettings();
+      settingsStr = ' | negotiated: echoCancellation=' + s.echoCancellation +
+        ', noiseSuppression=' + s.noiseSuppression +
+        ', autoGainControl=' + s.autoGainControl;
+    }
+    diagEl.textContent = 'audioCtx: ' + audioCtx.state +
+      ' | track: ' + (track ? track.readyState + ', enabled=' + track.enabled + ', muted=' + track.muted : 'none') +
+      settingsStr;
+
+    analyzeTimer = setInterval(analyze, 50);
+    drawRAF = requestAnimationFrame(drawScope);
+  }
+
+  function stopListening() {
+    if (!running) return;
+    running = false;
+
+    if (currentSegment) closeSegment(performance.now());
+    classifyAndLog();
+
+    clearInterval(analyzeTimer);
+    analyzeTimer = null;
+    if (drawRAF) cancelAnimationFrame(drawRAF);
+    drawRAF = null;
+
+    if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+    if (audioCtx) audioCtx.close();
+    mediaStream = null;
+    audioCtx = null;
+    analyser = null;
+    sourceNode = null;
+    muteGain = null;
+
+    scopeCtx.clearRect(0, 0, scopeCanvas.width, scopeCanvas.height);
+    ampFillEl.style.width = '0%';
+    curFreqEl.textContent = '—';
+    curRmsEl.textContent = '—';
+    diagEl.textContent = '';
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    statusEl.textContent = 'Not listening.';
+    statusEl.className = 'status';
+  }
+
+  clearBtn.addEventListener('click', () => {
+    logList.innerHTML = '<li class="empty-log">No sequences detected yet.</li>';
+  });
+
+  startBtn.addEventListener('click', startListening);
+  stopBtn.addEventListener('click', stopListening);
+})();
+</script>
+
+</body>
+</html>
