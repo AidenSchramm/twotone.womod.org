@@ -149,6 +149,23 @@
   .status.playing { color: #7fc7ff; }
   .status.active { color: #7fc7ff; }
   .status.error { color: #e0605a; }
+  .gain-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .gain-row input[type="range"] {
+    flex: 1;
+    accent-color: #2f81f7;
+  }
+  .gain-value {
+    min-width: 52px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+    color: #9a9fa8;
+  }
   .live-readout {
     display: flex;
     justify-content: space-between;
@@ -311,6 +328,11 @@
 
   <div class="panel">
     <h2>Live monitor</h2>
+    <label class="field" style="margin-bottom: 6px;">Mic gain</label>
+    <div class="gain-row">
+      <input type="range" id="lisMicGain" min="0" max="400" value="100" step="5">
+      <div class="gain-value" id="lisMicGainValue">100%</div>
+    </div>
     <div class="live-readout">
       <span>Current frequency</span>
       <span class="value" id="lisCurFreq">—</span>
@@ -503,15 +525,30 @@
   const logList = document.getElementById('lisLogList');
   const scopeCanvas = document.getElementById('lisScope');
   const scopeCtx = scopeCanvas.getContext('2d');
+  const micGainSlider = document.getElementById('lisMicGain');
+  const micGainValueEl = document.getElementById('lisMicGainValue');
 
   let audioCtx = null;
   let analyser = null;
   let mediaStream = null;
   let sourceNode = null;
+  let micGain = null;
   let muteGain = null;
   let analyzeTimer = null;
   let drawRAF = null;
   let running = false;
+
+  function updateMicGainLabel() {
+    const v = micGainSlider.value;
+    micGainValueEl.textContent = v + '%';
+    // Live-adjustable: nudges the gain node feeding the analyser directly,
+    // same pattern as the generator's volume slider.
+    if (micGain) {
+      micGain.gain.setValueAtTime(v / 100, audioCtx.currentTime);
+    }
+  }
+  micGainSlider.addEventListener('input', updateMicGainLabel);
+  updateMicGainLabel();
 
   let currentSegment = null; // {freqSum, freqCount, freq, start, last}
   let segments = [];
@@ -797,7 +834,13 @@
     sourceNode = audioCtx.createMediaStreamSource(mediaStream);
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
-    sourceNode.connect(analyser);
+
+    // Boosts (or cuts) the mic signal before pitch detection, so a quiet
+    // mic/source can be brought up without touching OS input levels.
+    micGain = audioCtx.createGain();
+    micGain.gain.value = micGainSlider.value / 100;
+    sourceNode.connect(micGain);
+    micGain.connect(analyser);
 
     // Some browsers only pull/process nodes that have a live path to the
     // destination — an AnalyserNode with nothing downstream can silently
@@ -853,6 +896,7 @@
     audioCtx = null;
     analyser = null;
     sourceNode = null;
+    micGain = null;
     muteGain = null;
 
     scopeCtx.clearRect(0, 0, scopeCanvas.width, scopeCanvas.height);
